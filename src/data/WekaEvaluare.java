@@ -34,13 +34,13 @@ public class WekaEvaluare <C extends Classifier> {
 	public static WekaEvaluare<Prism> GetPrismEvaluator() {
 		return new WekaEvaluare<> (new Prism());
 	}
-	public static void EvaluatePrism(final WekaDataNative dataFiltered) {
+	public static void EvaluatePrism(final WekaDataObj dataFiltered) {
 		new WekaEvaluare<> (new Prism()).Evaluate(dataFiltered);
 	}
 	
 	// ++++++++ MEMBER FUNCTIONS +++++++++++
 
-	public void Evaluate(final WekaDataNative dataFiltered) {
+	public void Evaluate(final WekaDataObj dataFiltered) {
 		this.Evaluate(dataFiltered.GetData());
 	}
 	public void Evaluate(final Instances dataFiltered) {

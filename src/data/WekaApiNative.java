@@ -1,3 +1,20 @@
+/*
+ *
+ * Implementat de:
+ *
+ * 1.) Romina Doros - implementare initiala
+ * in cadrul Lucrarii de Licenta, Sesiunea 2017-2018
+ *
+ * Universitatea de Vest, Timisoara
+ *
+ * in colaborare cu Syonic SRL
+ * 
+ * 2.) Leonard Mada
+ * - Refactoring, Split & Move into separate module;
+ * - enable weights;
+ *
+ * Copyright Syonic SRL & Leonard Mada
+*/
 package data;
 
 import java.io.InputStream;
@@ -16,16 +33,25 @@ import weka.filters.unsupervised.attribute.Remove;
 public class WekaApiNative {
 	
 	// TODO: use count/frecventa
+	// Add weights to data instances;
 	// https://github.com/fracpete/dataset-weights-weka-package
-	public void Weights(final WekaDataNative data, final Vector<Double> vWeights) {
+	public void Weights(final WekaDataObj data, final Vector<Double> vWeights) {
 		final Instances result = data.GetData();
+		if(result.numInstances() > vWeights.size()) {
+			// TODO: check len
+		}
+		
+		// adds the weight to the existing instance;
 		for (int i = 0; i < result.numInstances(); i++) {
 			final Instance inst = (Instance) result.instance(i);
 			inst.setWeight(vWeights.get(i));
 		}
 	}
 	public Instances Weights(final Instances data, final Vector<Double> vWeights) {
-		// TODO: check len
+		if(data.numInstances() > vWeights.size()) {
+			// TODO: check len
+		}
+		
 		final Instances result = new Instances(OutputFormat(data), data.numInstances());
 		for (int i = 0; i < data.numInstances(); i++) {
 			// uses Copy-construction
@@ -35,26 +61,31 @@ public class WekaApiNative {
 		}
 		return result;
 	}
+	
+	// Get the Format of the data
 	public Instances OutputFormat(final Instances inputFormat) {
 		// throws Exception
 	    return new Instances(inputFormat, 0);
-	  }
+	}
+	
+	// ++++ Load Data ++++
 
-	public WekaDataNative LoadData(final InputStream is, final int nCol) {
+	// Load the data
+	public WekaDataObj LoadData(final InputStream is, final int nColClass) {
 		// proper Weka
-		final WekaDataNative wekaData = new WekaDataNative();
+		final WekaDataObj wekaData = new WekaDataObj();
 		wekaData.SetData(is);
 
 		// setarea atributului de clasa (Stare Generala)
-		wekaData.GetData().setClassIndex(nCol);
+		wekaData.GetData().setClassIndex(nColClass);
 
 		return wekaData;
 	}
-	public WekaDataNative LoadBinaryData(final InputStream is, final int nCol, final int idCol) {
-		final WekaDataNative dataset = this.LoadData(is, nCol);
+	public WekaDataObj LoadBinaryData(final InputStream is, final int nCol, final int idCol) {
+		final WekaDataObj dataset = this.LoadData(is, nCol);
 		return this.LoadBinaryData(dataset, idCol);
 	}
-	public WekaDataNative LoadBinaryData(final WekaDataNative dataset, final int idCol) {
+	public WekaDataObj LoadBinaryData(final WekaDataObj dataset, final int idCol) {
 		final Instances dataFiltered;
 		if(idCol >= 0) {
 			dataFiltered = this.Filter(dataset.GetData(), idCol);
@@ -68,13 +99,17 @@ public class WekaApiNative {
 		return dataset;
 	}
 
+	// Filter out columns: e.g. ID-column
 	public Instances Filter(final Instances dataset, final int idCol) {
+		return this.Filter(dataset, new int [] {idCol});
+	}
+	public Instances Filter(final Instances dataset, final int [] idCols) {
 		// Filter
 		final Remove fltRemove = new Remove();
 
 		// final String optionsFilter [] = { "-R", "" + idCol };
 		// fltRemove.setOptions(optionsFilter);
-		fltRemove.setAttributeIndicesArray(new int [] {idCol});
+		fltRemove.setAttributeIndicesArray(idCols);
 		fltRemove.setInvertSelection(false);
 		try {
 			fltRemove.setInputFormat(dataset);
@@ -94,9 +129,11 @@ public class WekaApiNative {
 
 	// ++++ Trees ++++
 
-	public TreeObj J48(final WekaDataNative dataset, final String [] options) {
+	public TreeObj J48(final WekaDataObj dataset, final String [] options) {
+		final J48 tree = this.J48(dataset.GetData(), options);
+		this.Show(tree, "Tree Simptome");
 		// TODO: implement TreeObj
-		return new TreeObj(this.J48(dataset.GetData(), options));
+		return new TreeObj(tree);
 	}
 	public J48 J48(final Instances dataset, final String [] options) {
 		try {
@@ -106,7 +143,6 @@ public class WekaApiNative {
 			tree.buildClassifier(dataset);
 			// System.out.println(tree.getCapabilities().toString());
 			// System.out.println(tree.graph());
-			this.Show(tree, "Tree Simptome");
 			return tree;
 		} catch (Exception e1) {
 			e1.printStackTrace();
@@ -114,7 +150,8 @@ public class WekaApiNative {
 		return null;
 	}
 
-	public String Prism(final WekaDataNative dataFiltered) {
+	// library simpleeducationallearningschemes-1.0.2.jar
+	public String Prism(final WekaDataObj dataFiltered) {
 		if(dataFiltered == null) {
 			return null;
 		}
